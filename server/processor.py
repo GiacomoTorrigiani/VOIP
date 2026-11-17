@@ -129,20 +129,30 @@ def _process_with_gemini_rest(path: Path) -> Dict[str, Any]:
         }
     }
 
-    candidates = [GEMINI_MODEL, "gemini-3.5-flash-lite", "gemini-3.8-flash"]
+    candidates = [GEMINI_MODEL, "gemini-3.5-flash-lite", "gemini-3.8-flash", "gemini-2.5-flash-lite"]
     unique_candidates = list(dict.fromkeys(candidates))
 
     last_err_resp = None
+    import time
     for model_name in unique_candidates:
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={GEMINI_API_KEY}"
-        resp = requests.post(url, json=payload, timeout=180)
-        if resp.status_code == 200:
-            result_json = resp.json()
-            items = result_json.get("candidates", [])
-            if items:
-                text_content = items[0]["content"]["parts"][0]["text"]
-                return _clean_and_parse_json(text_content)
-        last_err_resp = resp
+        for attempt in range(2):
+            try:
+                resp = requests.post(url, json=payload, timeout=180)
+                if resp.status_code == 200:
+                    result_json = resp.json()
+                    items = result_json.get("candidates", [])
+                    if items:
+                        text_content = items[0].get("content", {}).get("parts", [{}])[0].get("text", "{}")
+                        return _clean_and_parse_json(text_content)
+                elif resp.status_code in [503, 429]:
+                    time.sleep(2)
+                    continue
+                last_err_resp = resp
+                break
+            except Exception as e:
+                print(f"[Processor] Errore richiesta per {model_name}: {e}")
+                time.sleep(1)
 
     if last_err_resp:
         raise RuntimeError(f"Errore Gemini API HTTP {last_err_resp.status_code}: {last_err_resp.text}")

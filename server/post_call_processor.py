@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 import sys
 import os
+import subprocess
 from pathlib import Path
 
-# Assicura che la cartella dello script sia in cima a sys.path
 SCRIPT_DIR = Path(__file__).resolve().parent
 if str(SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(SCRIPT_DIR))
@@ -18,7 +18,6 @@ import database
 from processor import process_audio_file
 
 def get_audio_duration(file_path: Path) -> int:
-    """Calcola la durata del file .wav in secondi"""
     try:
         with wave.open(str(file_path), 'rb') as wf:
             frames = wf.getnframes()
@@ -28,12 +27,23 @@ def get_audio_duration(file_path: Path) -> int:
     except Exception as e:
         print(f"[PostProcessor] Impossibile leggere durata wave: {e}")
 
-    # Fallback con sox o stat dimensione file (8000Hz 16bit mono = 16000 bytes/sec)
     try:
         size = file_path.stat().st_size
         return max(1, int(size / 16000))
     except Exception:
         return 0
+
+def convert_to_m4a(wav_path: Path) -> Path:
+    m4a_path = wav_path.with_suffix('.m4a')
+    try:
+        cmd = ["ffmpeg", "-y", "-i", str(wav_path), "-c:a", "aac", "-b:a", "64k", str(m4a_path)]
+        subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
+        if m4a_path.exists() and m4a_path.stat().st_size > 0:
+            print(f"[PostProcessor] Convertito con successo in AAC: {m4a_path}")
+            return m4a_path
+    except Exception as e:
+        print(f"[PostProcessor] Conversione ffmpeg non riuscita: {e}")
+    return wav_path
 
 def main():
     parser = argparse.ArgumentParser(description="Asterisk Post-Call Processor")
@@ -43,13 +53,10 @@ def main():
 
     print(f"[{datetime.now().isoformat()}] --- Inizio Post-Processing per UniqueID: {args.uniqueid} (Chiamante: {args.caller}) ---")
 
-    # Attendi che Asterisk chiuda la scrittura del file MixMonitor
     time.sleep(2)
 
-    # Cerca il file audio
     wav_path = RECORDINGS_DIR / f"{args.uniqueid}.wav"
     if not wav_path.exists():
-        # Cerca eventuali file con prefisso
         candidates = list(RECORDINGS_DIR.glob(f"*{args.uniqueid}*.wav"))
         if candidates:
             wav_path = candidates[0]
@@ -60,7 +67,6 @@ def main():
     duration = get_audio_duration(wav_path)
     print(f"[PostProcessor] File audio trovato: {wav_path} (Durata stimata: {duration} s)")
 
-    # 1. Associa la registrazione alla sessione creata dall'app iOS
     session = database.find_recent_initiated_call(args.caller)
     if session:
         call_id = session["id"]
@@ -76,7 +82,6 @@ def main():
         call_id = new_session["id"]
         database.update_call_status(call_id, status="processing", uniqueid=args.uniqueid, audio_path=str(wav_path))
 
-    # 2. Elaborazione con Gemini 2.5 Flash / 3.5 Flash Lite
     if wav_path.stat().st_size <= 500 or duration == 0:
         print("[PostProcessor] File audio vuoto o troppo breve (< 1s). Salvataggio stato senza invio a Gemini.")
         database.save_processing_results(
@@ -90,9 +95,12 @@ def main():
         )
         return
 
+    # Converti in AAC m4a ottimizzato per streaming iOS
+    final_audio_path = convert_to_m4a(wav_path)
+
     try:
-        print(f"[PostProcessor] Invio file a Gemini...")
-        result = process_audio_file(str(wav_path))
+        print(f"[PostProcessor] Invio file a Gemini ({final_audio_path})...")
+        result = process_audio_file(str(final_audio_path))
 
         transcription = result.get("transcription", "")
         summary = result.get("summary", "")
@@ -107,7 +115,7 @@ def main():
             concept_map=concept_map,
             calendar_events=calendar_events,
             duration_seconds=duration,
-            audio_path=str(wav_path),
+            audio_path=str(final_audio_path),
             summary=summary
         )
         print(f"[PostProcessor] Dati salvati nel database per la chiamata {call_id}.")

@@ -9,46 +9,34 @@ public struct InCallConferenceGuideView: View {
         NavigationView {
             ScrollView {
                 VStack(spacing: 20) {
-                    // Header Status
-                    VStack(spacing: 8) {
-                        ZStack {
-                            Circle()
-                                .fill(Color.green.opacity(0.15))
-                                .frame(width: 80, height: 80)
-                            Image(systemName: "phone.badge.waveform.fill")
-                                .font(.system(size: 38))
-                                .foregroundColor(.green)
-                        }
-
-                        Text("Chiamata Ponte Attiva")
-                            .font(.title2.bold())
-
-                        Text("VoIP Ponte: 07441590208")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                    }
-                    .padding(.top, 10)
-
-                    // Scheda Destinatario
-                    VStack(spacing: 8) {
-                        Text("DESTINATARIO")
-                            .font(.caption.bold())
-                            .foregroundColor(.secondary)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-
-                        HStack {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(viewModel.contactName.isEmpty ? "Numero Selezionato" : viewModel.contactName)
-                                    .font(.headline)
-                                Text(viewModel.phoneNumber)
-                                    .font(.title3.monospacedDigit())
-                                    .foregroundColor(.primary)
+                    // Scheda Destinatario Selezionato
+                    VStack(spacing: 12) {
+                        HStack(spacing: 14) {
+                            ZStack {
+                                Circle()
+                                    .fill(Color.blue.opacity(0.15))
+                                    .frame(width: 50, height: 50)
+                                Text(initials(for: viewModel.contactName))
+                                    .font(.headline.bold())
+                                    .foregroundColor(.blue)
                             }
+
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text(viewModel.contactName.isEmpty ? "Destinatario Selezionato" : viewModel.contactName)
+                                    .font(.title3.bold())
+                                    .foregroundColor(.primary)
+
+                                Text(viewModel.phoneNumber)
+                                    .font(.subheadline.monospacedDigit())
+                                    .foregroundColor(.secondary)
+                            }
+
                             Spacer()
 
                             Button(action: {
                                 UIPasteboard.general.string = viewModel.phoneNumber
                                 hasCopied = true
+                                UIImpactFeedbackGenerator(style: .light).impactOccurred()
                                 DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
                                     hasCopied = false
                                 }
@@ -65,75 +53,163 @@ public struct InCallConferenceGuideView: View {
                             }
                         }
                     }
-                    .padding()
+                    .padding(16)
                     .background(Color(UIColor.secondarySystemGroupedBackground))
-                    .cornerRadius(14)
+                    .cornerRadius(16)
 
-                    // Pulsante Azione Rapida: Chiama Destinatario
-                    Button(action: {
-                        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                        viewModel.callRecipientNow()
-                    }) {
-                        HStack(spacing: 12) {
-                            Image(systemName: "phone.arrow.up.right.fill")
-                                .font(.title3)
-                            Text("Chiama Destinatario Ora")
-                                .font(.headline)
+                    // PASSO 1: Chiama Numero VoIP
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack {
+                            Text("PASSO 1")
+                                .font(.caption.bold())
+                                .foregroundColor(.green)
+                            Spacer()
+                            if viewModel.hasDialedBridge {
+                                Label("Chiamato", systemImage: "checkmark.circle.fill")
+                                    .font(.caption.bold())
+                                    .foregroundColor(.green)
+                            }
                         }
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 16)
-                        .background(Color.green)
-                        .cornerRadius(14)
-                        .shadow(color: Color.green.opacity(0.3), radius: 8, y: 4)
-                    }
 
-                    // Guida Passaggio per Passaggio
-                    VStack(alignment: .leading, spacing: 14) {
-                        Text("COME COMPLETARE LA REGISTRAZIONE")
-                            .font(.caption.bold())
+                        Text("Chiama il Registratore VoIP")
+                            .font(.headline)
+
+                        Text("Numero VoIP PBX: 07441590208")
+                            .font(.subheadline.monospacedDigit().bold())
+                            .foregroundColor(.primary)
+
+                        Text("Il centralino risponde e rimane in ascolto silenzioso. Questa chiamata è completamente gratuita (0,00 €/min).")
+                            .font(.caption)
                             .foregroundColor(.secondary)
 
-                        StepRow(
-                            step: "1",
-                            title: "Chiamata Ponte Avviata",
-                            description: "Il PBX Asterisk ha risposto sul numero 07441590208 ed è in ascolto silenzioso con MixMonitor attivo."
-                        )
-
-                        StepRow(
-                            step: "2",
-                            title: "Chiama il Destinatario",
-                            description: "Premi il pulsante verde sopra. La chiamata al ponte verrà messa automaticamente in attesa da iOS."
-                        )
-
-                        StepRow(
-                            step: "3",
-                            title: "Premi 'Unisci' (Merge)",
-                            description: "Sulla schermata telefonica di iOS apparirà il tasto 'Unisci'. Premilo subito per far confluire il destinatario e la linea ponte nella conferenza!"
-                        )
+                        Button(action: {
+                            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                            viewModel.callBridgeNow()
+                        }) {
+                            HStack(spacing: 10) {
+                                if viewModel.isInitiatingCall {
+                                    ProgressView()
+                                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                } else {
+                                    Image(systemName: viewModel.hasDialedBridge ? "arrow.clockwise" : "phone.fill")
+                                    Text(viewModel.hasDialedBridge ? "Richiama VoIP (07441590208)" : "1. Chiama Numero VoIP (07441590208)")
+                                        .font(.headline)
+                                }
+                            }
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                            .background(viewModel.hasDialedBridge ? Color.gray : Color.green)
+                            .cornerRadius(12)
+                        }
+                        .disabled(viewModel.isInitiatingCall)
                     }
-                    .padding()
+                    .padding(16)
                     .background(Color(UIColor.secondarySystemGroupedBackground))
-                    .cornerRadius(14)
+                    .cornerRadius(16)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16)
+                            .stroke(viewModel.hasDialedBridge ? Color.clear : Color.green.opacity(0.4), lineWidth: 1.5)
+                    )
 
-                    // Avviso Privacy & Caller ID
-                    HStack(alignment: .top, spacing: 10) {
-                        Image(systemName: "shield.checkmark.fill")
-                            .foregroundColor(.blue)
-                            .font(.title3)
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Triangolazione Inversa Attiva")
-                                .font(.subheadline.bold())
-                            Text("Il destinatario vedrà ESCLUSIVAMENTE il tuo numero reale (3669650010). Il numero VoIP 07441590208 rimarrà completamente invisibile.")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
+                    // PASSO 2: Aggiungi Destinatario
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack {
+                            Text("PASSO 2")
+                                .font(.caption.bold())
+                                .foregroundColor(.blue)
+                            Spacer()
+                            if viewModel.hasDialedRecipient {
+                                Label("Aggiunto", systemImage: "checkmark.circle.fill")
+                                    .font(.caption.bold())
+                                    .foregroundColor(.blue)
+                            }
+                        }
+
+                        Text("Aggiungi Destinatario alla Chiamata")
+                            .font(.headline)
+
+                        Text("Tocca questo pulsante per chiamare \(viewModel.contactName.isEmpty ? "il destinatario" : viewModel.contactName). iOS metterà il VoIP in attesa e comporrà il numero con il tuo cellulare reale (3669650010).")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+
+                        Button(action: {
+                            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                            viewModel.callRecipientNow()
+                        }) {
+                            HStack(spacing: 10) {
+                                Image(systemName: "person.crop.circle.badge.plus")
+                                Text("2. Aggiungi \(viewModel.contactName.isEmpty ? "Destinatario" : viewModel.contactName) alla Chiamata")
+                                    .font(.headline)
+                                    .lineLimit(1)
+                                    .minimumScaleFactor(0.8)
+                            }
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                            .background(viewModel.hasDialedBridge ? Color.blue : Color.blue.opacity(0.7))
+                            .cornerRadius(12)
+                            .shadow(color: viewModel.hasDialedBridge ? Color.blue.opacity(0.4) : Color.clear, radius: 8, y: 3)
                         }
                     }
-                    .padding()
-                    .background(Color.blue.opacity(0.08))
+                    .padding(16)
+                    .background(Color(UIColor.secondarySystemGroupedBackground))
+                    .cornerRadius(16)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16)
+                            .stroke(viewModel.hasDialedBridge ? Color.blue.opacity(0.6) : Color.clear, lineWidth: 2)
+                    )
+
+                    // PASSO 3: Premi Unisci
+                    VStack(alignment: .leading, spacing: 10) {
+                        HStack(spacing: 8) {
+                            Text("PASSO 3")
+                                .font(.caption.bold())
+                                .foregroundColor(.orange)
+                            Spacer()
+                        }
+
+                        Text("Premi 'Unisci' (Merge) sullo Schermo iPhone")
+                            .font(.headline)
+
+                        HStack(alignment: .top, spacing: 12) {
+                            Image(systemName: "arrow.triangle.merge")
+                                .font(.system(size: 28))
+                                .foregroundColor(.orange)
+                                .padding(.top, 2)
+
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Sul display della telefonata di iOS apparirà il tasto 'Unisci'.")
+                                    .font(.subheadline)
+                                    .foregroundColor(.primary)
+                                Text("Premilo subito: le due chiamate confluiranno in conferenza. Tu parlerai normalmente con \(viewModel.contactName.isEmpty ? "il destinatario" : viewModel.contactName) e il registratore registrerà tutto in silenzio!")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                    }
+                    .padding(16)
+                    .background(Color.orange.opacity(0.08))
+                    .cornerRadius(16)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 16)
+                            .stroke(Color.orange.opacity(0.3), lineWidth: 1)
+                    )
+
+                    // Suggerimento Notifica Banner
+                    HStack(spacing: 10) {
+                        Image(systemName: "bell.badge.fill")
+                            .foregroundColor(.blue)
+                        Text("Mentre sei in chiamata, ti arriverà anche una notifica in alto sullo schermo per tornare subito a questa guida.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    .padding(12)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Color.secondary.opacity(0.08))
                     .cornerRadius(12)
 
-                    Spacer().frame(height: 10)
+                    Spacer().frame(height: 20)
                 }
                 .padding()
             }
@@ -150,30 +226,15 @@ public struct InCallConferenceGuideView: View {
             }
         }
     }
-}
 
-private struct StepRow: View {
-    let step: String
-    let title: String
-    let description: String
-
-    var body: some View {
-        HStack(alignment: .top, spacing: 12) {
-            Text(step)
-                .font(.headline)
-                .foregroundColor(.white)
-                .frame(width: 28, height: 28)
-                .background(Color.blue)
-                .clipShape(Circle())
-
-            VStack(alignment: .leading, spacing: 3) {
-                Text(title)
-                    .font(.subheadline.bold())
-                Text(description)
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
+    private func initials(for name: String) -> String {
+        let parts = name.split(separator: " ")
+        if let first = parts.first?.first {
+            if parts.count > 1, let second = parts.last?.first {
+                return "\(first)\(second)".uppercased()
             }
+            return String(first).uppercased()
         }
+        return "📞"
     }
 }

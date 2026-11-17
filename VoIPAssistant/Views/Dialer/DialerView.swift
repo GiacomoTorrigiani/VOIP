@@ -100,16 +100,16 @@ public struct DialerView: View {
 
                     Button(action: {
                         UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                        viewModel.startRecordedCall()
+                        viewModel.openConferenceGuide()
                     }) {
                         HStack(spacing: 10) {
                             if viewModel.isInitiatingCall {
                                 ProgressView()
                                     .progressViewStyle(CircularProgressViewStyle(tint: .white))
                             } else {
-                                Image(systemName: "phone.fill")
+                                Image(systemName: "phone.badge.waveform.fill")
                                     .font(.title2)
-                                Text("Avvia Chiamata Registrata")
+                                Text("Avvia Registrazione VoIP")
                                     .font(.headline)
                             }
                         }
