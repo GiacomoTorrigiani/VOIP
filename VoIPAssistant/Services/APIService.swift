@@ -118,17 +118,34 @@ public final class APIService {
     }
 
     /// Verifica lo stato del server (Health Check)
-    public func checkHealth() async throws -> Bool {
-        let request = try makeRequest(endpoint: "/api/health")
-        let (data, response) = try await URLSession.shared.data(for: request)
-        guard let http = response as? HTTPURLResponse, (200...299).contains(http.statusCode) else {
-            return false
+    public func checkHealth() async throws -> (success: Bool, message: String) {
+        guard let url = URL(string: "\(settings.cleanServerURL)/api/health") else {
+            return (false, "Indirizzo URL non valido: \(settings.cleanServerURL)")
         }
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.timeoutInterval = 10.0
+        request.setValue("Bearer \(settings.apiToken)", forHTTPHeaderField: "Authorization")
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard let http = response as? HTTPURLResponse else {
+            return (false, "Nessuna risposta HTTP ricevuta dal server.")
+        }
+
+        guard (200...299).contains(http.statusCode) else {
+            return (false, "Errore HTTP \(http.statusCode): il server ha risposto con codice anomalo.")
+        }
+
         if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
            let status = json["status"] as? String {
-            return status.lowercased() == "ok"
+            if status.lowercased() == "ok" {
+                let model = json["gemini_model"] as? String ?? "gemini-2.5-flash"
+                return (true, "Connessione riuscita! VPS e \(model) operativi.")
+            } else {
+                return (false, "Il server ha risposto con status: \(status)")
+            }
         }
-        return true
+        return (true, "Connessione riuscita! Backend VPS online.")
     }
 
     /// Richiede la rielaborazione AI della chiamata

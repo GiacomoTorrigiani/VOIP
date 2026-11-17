@@ -22,11 +22,17 @@ VOIP_BRIDGE_NUMBER = os.getenv("VOIP_BRIDGE_NUMBER", "07441590208")
 # Su Ubuntu produzione: /var/spool/asterisk/monitor
 _default_rec_dir = "/var/spool/asterisk/monitor" if os.path.exists("/var/spool/asterisk/monitor") else str(BASE_DIR / "recordings")
 RECORDINGS_DIR = Path(os.getenv("RECORDINGS_DIR", _default_rec_dir))
-RECORDINGS_DIR.mkdir(parents=True, exist_ok=True)
+try:
+    RECORDINGS_DIR.mkdir(parents=True, exist_ok=True)
+except Exception as e:
+    print(f"Warning: could not create RECORDINGS_DIR {RECORDINGS_DIR}: {e}")
 
 # Directory per database e file di stato
 _default_data_dir = "/opt/voip-backend/data" if os.path.exists("/opt/voip-backend") else str(BASE_DIR / "data")
 DATA_DIR = Path(os.getenv("DATA_DIR", _default_data_dir))
-DATA_DIR.mkdir(parents=True, exist_ok=True)
+try:
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
+except Exception as e:
+    print(f"Warning: could not create DATA_DIR {DATA_DIR}: {e}")
 
 DATABASE_PATH = DATA_DIR / "calls.db"

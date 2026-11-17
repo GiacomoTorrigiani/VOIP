@@ -5,12 +5,17 @@ public struct SettingsView: View {
     @State private var isTestingConnection: Bool = false
     @State private var connectionStatusMessage: String? = nil
     @State private var isConnectionSuccess: Bool = false
+    @State private var isTokenVisible: Bool = false
+    @State private var showingResetAlert: Bool = false
 
     public var body: some View {
         NavigationView {
             Form {
                 // Sezione VPS Backend
-                Section(header: Text("CONFIGURAZIONE SERVER VPS"), footer: Text("L'URL della VPS Ubuntu su cui è attivo il backend FastAPI (porta default: 8000).")) {
+                Section(
+                    header: Text("CONFIGURAZIONE SERVER VPS"),
+                    footer: Text("L'URL del reverse proxy HTTPS della VPS Ubuntu che inoltra al backend FastAPI (porta 8890).")
+                ) {
                     HStack {
                         Image(systemName: "server.rack")
                             .foregroundColor(.blue)
@@ -25,7 +30,20 @@ public struct SettingsView: View {
                         Image(systemName: "key.fill")
                             .foregroundColor(.orange)
                             .frame(width: 24)
-                        SecureField("API Secret Token", text: $settings.apiToken)
+
+                        if isTokenVisible {
+                            TextField("API Secret Token", text: $settings.apiToken)
+                                .autocapitalization(.none)
+                                .disableAutocorrection(true)
+                        } else {
+                            SecureField("API Secret Token", text: $settings.apiToken)
+                        }
+
+                        Button(action: { isTokenVisible.toggle() }) {
+                            Image(systemName: isTokenVisible ? "eye.slash" : "eye")
+                                .foregroundColor(.secondary)
+                        }
+                        .buttonStyle(BorderlessButtonStyle())
                     }
 
                     Button(action: testConnection) {
@@ -40,24 +58,30 @@ public struct SettingsView: View {
                                     .foregroundColor(.blue)
                                 Text("Verifica Connessione VPS")
                                     .foregroundColor(.blue)
+                                    .fontWeight(.medium)
                             }
                         }
                     }
                     .disabled(isTestingConnection)
 
                     if let msg = connectionStatusMessage {
-                        HStack(spacing: 8) {
+                        HStack(alignment: .top, spacing: 8) {
                             Image(systemName: isConnectionSuccess ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
                                 .foregroundColor(isConnectionSuccess ? .green : .red)
+                                .padding(.top, 2)
                             Text(msg)
-                                .font(.caption)
+                                .font(.footnote)
                                 .foregroundColor(isConnectionSuccess ? .green : .red)
                         }
+                        .padding(.vertical, 2)
                     }
                 }
 
                 // Sezione Parametri VoIP & Triangolazione
-                Section(header: Text("PARAMETRI TRIANGOLAZIONE VOIP"), footer: Text("Il destinatario vedrà sempre e solo il tuo cellulare reale. Il ponte VoIP rimane silenzioso in conferenza.")) {
+                Section(
+                    header: Text("PARAMETRI TRIANGOLAZIONE VOIP"),
+                    footer: Text("Il destinatario vedrà sempre e solo il tuo cellulare reale. Il ponte VoIP rimane silenzioso in conferenza.")
+                ) {
                     HStack {
                         Image(systemName: "phone.arrow.up.right")
                             .foregroundColor(.green)
@@ -81,6 +105,16 @@ public struct SettingsView: View {
                                 .foregroundColor(.secondary)
                             TextField("3669650010", text: $settings.callerNumber)
                                 .keyboardType(.phonePad)
+                        }
+                    }
+                }
+
+                // Sezione Ripristino
+                Section {
+                    Button(role: .destructive, action: { showingResetAlert = true }) {
+                        HStack {
+                            Image(systemName: "arrow.counterclockwise")
+                            Text("Ripristina Impostazioni Predefinite")
                         }
                     }
                 }
@@ -118,7 +152,7 @@ public struct SettingsView: View {
                     HStack {
                         Text("Versione")
                         Spacer()
-                        Text("1.0.0 (Build 1)")
+                        Text("1.0.1 (Build 2)")
                             .foregroundColor(.secondary)
                     }
                     HStack {
@@ -130,12 +164,23 @@ public struct SettingsView: View {
                     HStack {
                         Text("Sideloading")
                         Spacer()
-                        Text("Compatibile AltStore / TrollStore")
+                        Text("Compatibile Feather / AltStore / TrollStore")
                             .foregroundColor(.secondary)
                     }
                 }
             }
             .navigationTitle("Impostazioni")
+            .alert(isPresented: $showingResetAlert) {
+                Alert(
+                    title: Text("Ripristinare le impostazioni?"),
+                    message: Text("Tutti i parametri torneranno ai valori di fabbrica (gestoreserver.duckdns.org/voip, 07441590208, 3669650010)."),
+                    primaryButton: .destructive(Text("Ripristina")) {
+                        settings.resetToDefaults()
+                        connectionStatusMessage = nil
+                    },
+                    secondaryButton: .cancel(Text("Annulla"))
+                )
+            }
         }
     }
 
@@ -145,11 +190,11 @@ public struct SettingsView: View {
 
         Task {
             do {
-                let success = try await APIService.shared.checkHealth()
+                let result = try await APIService.shared.checkHealth()
                 DispatchQueue.main.async {
                     self.isTestingConnection = false
-                    self.isConnectionSuccess = success
-                    self.connectionStatusMessage = success ? "Connessione riuscita! Il backend VPS risponde correttamente." : "Il backend ha risposto con uno stato anomalo."
+                    self.isConnectionSuccess = result.success
+                    self.connectionStatusMessage = result.message
                 }
             } catch {
                 DispatchQueue.main.async {
