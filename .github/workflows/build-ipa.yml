@@ -66,23 +66,22 @@ jobs:
       - name: Create or Update GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.0.2
-          name: "VoIP Assistant iOS v1.0.2"
+          tag_name: v1.0.3
+          name: "VoIP Assistant iOS v1.0.3"
           body: |
-            ## 🚀 VoIP Assistant per iOS v1.0.2 (Unsigned .ipa)
+            ## 🚀 VoIP Assistant per iOS v1.0.3 (Unsigned .ipa)
             
-            Nuova versione con flusso di chiamata guidato a 3 vie:
+            Nuova versione con supporto all'estrazione automatica di **Prompt Operativi AI**, integrazione rapida per **Google Gemini Pro / Deep Research**, trascrizione fonetica migliorata e pulizia delle mappe concettuali.
             
-            ### Novità di v1.0.2:
-            - **Nuovo Flusso Diretto**: Cliccando un contatto dalla rubrica compare immediatamente la scheda con il numero VoIP (07441590208) e il tasto per aggiungere il destinatario alla chiamata.
-            - **Passo 1 (VoIP Registratore)**: Chiama il centralino silenzioso con spiegazione chiara (chiamata gratuita in entrata).
-            - **Passo 2 (Aggiungi Destinatario)**: Tasto dedicato per comporre il numero del contatto con il proprio cellulare reale (3669650010).
-            - **Passo 3 (Unisci Chiamate)**: Guida visiva immediata per premere "Unisci" sul display di iOS.
-            - **Notifica Banner Promemoria**: Ricevi un promemoria rapido per tornare all'app e unire la conferenza mentre sei in linea.
-            - **Audio M4A / AAC Nativo**: Streaming e scrubbing dell'audio istantanei e fluidi su iOS.
+            ### Novità di v1.0.3:
+            - **Nuova Sezione Prompt AI Operativi**: Rileva automaticamente compiti, dossier, ricerche o richieste avanzate concordate durante la telefonata.
+            - **Prompt Ingegnerizzati Pronti all'Uso**: Ogni richiesta viene formattata con istruzioni chiare, contesto estratto e placeholder per allegati da incollare direttamente in Gemini.
+            - **Integrazione Rapida con Google Gemini Web**: Pulsante dedicato per copiare il prompt negli appunti con feedback aptico e pulsante diretto per aprire `gemini.google.com/app` (utilizzando il tuo profilo con Gemini Pro, Deep Research e caricamento file).
+            - **Trascrizione con Correzione Fonetica e Lessicale**: Algoritmo dual-pass per sanare le distorsioni tipiche dell'audio telefonico compresso a 8kHz.
+            - **Mappe Concettuali Cmap Pulite**: Filtro stretto contro i meta-nodi superflui (es. "chiamata", "smartphone"), focalizzandosi unicamente sugli accordi e i temi discussi.
             
-            ### Installazione con Feather / AltStore:
-            Scarica il file `VoIPAssistant.ipa` qui sotto e installalo con Feather, AltStore o TrollStore.
+            ### Installazione con Feather / AltStore / TrollStore:
+            Scarica il file `VoIPAssistant.ipa` allegato a questa release e installalo tramite la tua app di signing preferita.
           files: VoIPAssistant.ipa
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

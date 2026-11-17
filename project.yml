@@ -17,8 +17,8 @@ targets:
       path: VoIPAssistant/Info.plist
       properties:
         CFBundleDisplayName: "VoIP Assistant"
-        CFBundleShortVersionString: "1.0.1"
-        CFBundleVersion: "2"
+        CFBundleShortVersionString: "1.0.3"
+        CFBundleVersion: "4"
         UILaunchScreen: {}
         UIUserInterfaceStyle: "Automatic"
         UISupportedInterfaceOrientations:

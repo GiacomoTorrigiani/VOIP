@@ -14,6 +14,7 @@ public struct CallRecord: Identifiable, Codable, Equatable {
     public var transcription: String?
     public var conceptMap: ConceptMap?
     public var calendarEvents: [CalendarEvent]
+    public var actionPrompts: [ActionPrompt]
     public var summary: String?
 
     enum CodingKeys: String, CodingKey {
@@ -29,6 +30,7 @@ public struct CallRecord: Identifiable, Codable, Equatable {
         case transcription
         case conceptMap = "concept_map"
         case calendarEvents = "calendar_events"
+        case actionPrompts = "action_prompts"
         case summary
     }
 
@@ -46,6 +48,7 @@ public struct CallRecord: Identifiable, Codable, Equatable {
         self.transcription = try? container.decodeIfPresent(String.self, forKey: .transcription)
         self.conceptMap = try? container.decodeIfPresent(ConceptMap.self, forKey: .conceptMap)
         self.calendarEvents = (try? container.decode([CalendarEvent].self, forKey: .calendarEvents)) ?? []
+        self.actionPrompts = (try? container.decode([ActionPrompt].self, forKey: .actionPrompts)) ?? []
         self.summary = try? container.decodeIfPresent(String.self, forKey: .summary)
     }
 

@@ -115,6 +115,7 @@ def main():
         summary = result.get("summary", "")
         concept_map = result.get("concept_map", {})
         calendar_events = result.get("calendar_events", [])
+        action_prompts = result.get("action_prompts", [])
         detected_name = result.get("detected_recipient_name")
 
         final_recip_name = None
@@ -122,7 +123,7 @@ def main():
             final_recip_name = detected_name
             print(f"[PostProcessor] Nome interlocutore identificato da AI: {detected_name}")
 
-        print(f"[PostProcessor] Elaborazione completata con successo! Trascrizione: {len(transcription)} caratteri, Eventi: {len(calendar_events)}")
+        print(f"[PostProcessor] Elaborazione completata con successo! Trascrizione: {len(transcription)} caratteri, Eventi: {len(calendar_events)}, Prompt Azioni: {len(action_prompts)}")
 
         database.save_processing_results(
             call_id=call_id,
@@ -132,7 +133,8 @@ def main():
             duration_seconds=duration,
             audio_path=str(final_audio_path),
             summary=summary,
-            recipient_name=final_recip_name
+            recipient_name=final_recip_name,
+            action_prompts=action_prompts
         )
         print(f"[PostProcessor] Dati salvati nel database per la chiamata {call_id}.")
 

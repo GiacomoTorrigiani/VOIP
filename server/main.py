@@ -128,7 +128,8 @@ def _reprocess_call_task(call_id: str, audio_path: str):
             calendar_events=result.get("calendar_events", []),
             duration_seconds=call.get("duration_seconds", 0) if call else 0,
             audio_path=audio_path,
-            summary=result.get("summary", "")
+            summary=result.get("summary", ""),
+            action_prompts=result.get("action_prompts", [])
         )
     except Exception as e:
         print(f"[Reprocess] Errore: {e}")

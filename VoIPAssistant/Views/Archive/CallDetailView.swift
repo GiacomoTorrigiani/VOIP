@@ -81,11 +81,12 @@ public struct CallDetailView: View {
                         )
                     }
 
-                    // Selettore Sezione (3 Schede)
+                    // Selettore Sezione (4 Schede)
                     Picker("Sezione", selection: $selectedTab) {
                         Text("Trascrizione").tag(0)
                         Text("Mappa Cmap").tag(1)
                         Text("Eventi (\(call.calendarEvents.count))").tag(2)
+                        Text("Prompt (\(call.actionPrompts.count))").tag(3)
                     }
                     .pickerStyle(SegmentedPickerStyle())
                     .padding(.top, 4)
@@ -98,6 +99,8 @@ public struct CallDetailView: View {
                         ConceptMapView(conceptMap: call.conceptMap)
                     case 2:
                         CalendarEventsView(events: call.calendarEvents)
+                    case 3:
+                        ActionPromptsView(prompts: call.actionPrompts)
                     default:
                         EmptyView()
                     }

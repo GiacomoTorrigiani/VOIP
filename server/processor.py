@@ -55,11 +55,22 @@ INFO INTERLOCUTORI:
      * "notes": Dettagli importanti
      * "location": Luogo o "Chiamata telefonica"
 
+5. "action_prompts":
+   - Rileva se durante la conversazione uno degli interlocutori chiede di compiere un'azione, una ricerca, un'analisi, un dossier, o la stesura di un documento (ad esempio: "fammi un dossier su Mario Rossi", "ti mando il CV su WhatsApp con annotazioni", "preparami una bozza", "cercami la legge su...", "confrontami due offerte").
+   - Se NON ci sono compiti operativi o richieste di lavoro, restituisci [].
+   - Per OGNI richiesta rilevata, crea un prompt professionale pronto all'uso con:
+     * "id": "p1", "p2", ...
+     * "task_title": Titolo sintetico dell'azione (es. "Dossier Approfondito su Mario Rossi")
+     * "request_context": Contesto della richiesta emersa nella chiamata (es. "Richiesto dall'interlocutore; ti inviera' il CV con annotazioni via WhatsApp")
+     * "suggested_mode": "Deep Research" (per ricerche web complesse), "Analisi Documenti" (se include allegati o CV), oppure "Stesura Rapida"
+     * "suggested_model": "Gemini 3.1 Pro / Advanced"
+     * "prompt_text": Il testo integrale del Super-Prompt ingegnerizzato, pronto da incollare su Google Gemini, Claude o ChatGPT. Deve includere Ruolo professionale, Obiettivo, Metodologia, Sezioni richieste nel report finale, e un chiaro segnaposto [INCOLLA QUI IL DOCUMENTO / CV RICEVUTO].
+
 RISPONDI ESCLUSIVAMENTE con un oggetto JSON valido privo di blocchi markdown ```json o testo introduttivo.
 """
 
 USER_PROMPT = """
-Trascrivi con massima fedelta' parola per parola questo audio telefonico distinguendo gli interlocutori, genera la sintesi, la mappa concettuale formale di Novak sui contenuti reali ed eventuali eventi di calendario.
+Trascrivi con massima fedelta' parola per parola questo audio telefonico distinguendo gli interlocutori, genera la sintesi, la mappa concettuale formale di Novak sui contenuti reali, eventuali eventi di calendario e i prompt ingegnerizzati per le azioni/richieste operative emerse.
 """
 
 def process_audio_file(

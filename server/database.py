@@ -27,6 +27,7 @@ def init_db():
                 transcription TEXT,
                 concept_map_json TEXT,
                 calendar_events_json TEXT,
+                action_prompts_json TEXT,
                 summary TEXT,
                 created_at TEXT NOT NULL,
                 updated_at TEXT NOT NULL
@@ -105,11 +106,13 @@ def save_processing_results(
     duration_seconds: int,
     audio_path: Optional[str] = None,
     summary: Optional[str] = None,
-    recipient_name: Optional[str] = None
+    recipient_name: Optional[str] = None,
+    action_prompts: Optional[List[Dict[str, Any]]] = None
 ):
     now_iso = datetime.now(timezone.utc).isoformat()
     cmap_json = json.dumps(concept_map, ensure_ascii=False)
     events_json = json.dumps(calendar_events, ensure_ascii=False)
+    prompts_json = json.dumps(action_prompts or [], ensure_ascii=False)
 
     with get_connection() as conn:
         conn.execute("""
@@ -118,13 +121,14 @@ def save_processing_results(
                 transcription = ?,
                 concept_map_json = ?,
                 calendar_events_json = ?,
+                action_prompts_json = ?,
                 duration_seconds = ?,
                 audio_path = COALESCE(?, audio_path),
                 summary = ?,
                 recipient_name = COALESCE(?, recipient_name),
                 updated_at = ?
             WHERE id = ? OR session_id = ? OR uniqueid = ?
-        """, (transcription, cmap_json, events_json, duration_seconds, audio_path, summary, recipient_name, now_iso, call_id, call_id, call_id))
+        """, (transcription, cmap_json, events_json, prompts_json, duration_seconds, audio_path, summary, recipient_name, now_iso, call_id, call_id, call_id))
         conn.commit()
 
 def _row_to_dict(row: sqlite3.Row) -> Dict[str, Any]:
@@ -145,6 +149,14 @@ def _row_to_dict(row: sqlite3.Row) -> Dict[str, Any]:
             d["calendar_events"] = []
     else:
         d["calendar_events"] = []
+
+    if d.get("action_prompts_json"):
+        try:
+            d["action_prompts"] = json.loads(d["action_prompts_json"])
+        except Exception:
+            d["action_prompts"] = []
+    else:
+        d["action_prompts"] = []
 
     d["has_audio"] = bool(d.get("audio_path"))
     return d
