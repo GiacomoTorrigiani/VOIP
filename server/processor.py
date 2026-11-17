@@ -21,12 +21,13 @@ INFO INTERLOCUTORI:
 - Destinatario: {recipient_desc}
 
 1. "transcription":
-   - Trascrizione INTEGRALE e FEDELE parola per parola (verbatim), in perfetto italiano parlato colloquiale naturale.
+   - Esegui una doppia analisi integrata:
+     * FASE A (Ascolto Fonetico): Decodifica con la massima precisione l'audio della conversazione in italiano colloquiale.
+     * FASE B (Correzione Lessicale e Semantica Contestuale): Rianalizza l'intero contesto logico per correggere i tipici errori di decodifica fonetica della linea telefonica (es. se una parola acusticamente suona come un non-senso come "ratteo", ma il contesto della frase rende chiaro che l'interlocutore ha detto "da Dio", correggila automaticamente; se il contesto parla di mappe concettuali, correggi "GMap" in "C-Map").
+     * Mantieni inalterati i modi di dire spontanei, le esclamazioni, le risate e la naturalezza del parlato reale (senza censurare e senza trasformare il parlato in un testo artificiale).
    - Distingui con la massima precisione i due interlocutori basandoti sul timbro di voce e sul contesto:
      * Voce del chiamante ({caller_name})
      * Voce dell'interlocutore ({recipient_name})
-   - Fai grandissima attenzione alle espressioni colloquiali, risate, esclamazioni e termini tecnici (ad esempio "applicazione da Dio", "C-Map / Cmap", "Jack", "bip / tono di composizione", "mi s'e' schiantato il telefono a terra", "poi ti chiamo normalmente, tranquilla").
-   - NON inventare parole prive di senso fonetico (ad esempio: NON scrivere "ratteo" al posto di "da Dio", NON scrivere "GMap" al posto di "C-Map").
    - Formatta chiaramente come dialogo a battute con gli speaker corretti:
      "{caller_name}: ...\\n{recipient_name}: ...".
 
