@@ -1,0 +1,91 @@
+name: Build iOS IPA & Release
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-ipa:
+    name: Build Unsigned iOS IPA
+    runs-on: macos-14
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Select Xcode Version
+        run: |
+          sudo xcode-select -s /Applications/Xcode_15.4.app || sudo xcode-select -s /Applications/Xcode.app
+          xcodebuild -version
+
+      - name: Install XcodeGen
+        run: |
+          brew install xcodegen
+
+      - name: Generate Xcode Project with XcodeGen
+        run: |
+          xcodegen generate
+
+      - name: Build App for iOS (Unsigned)
+        run: |
+          xcodebuild build \
+            -project VoIPAssistant.xcodeproj \
+            -scheme VoIPAssistant \
+            -configuration Release \
+            -destination "generic/platform=iOS" \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY=""
+
+      - name: Package App into .ipa
+        run: |
+          APP_PATH=$(find build/Build/Products/Release-iphoneos -name "*.app" | head -n 1)
+          if [ -z "$APP_PATH" ]; then
+            echo "ERRORE: .app bundle non trovato!"
+            exit 1
+          fi
+          echo "Trovato .app: $APP_PATH"
+          mkdir -p Payload
+          cp -r "$APP_PATH" Payload/
+          zip -r VoIPAssistant.ipa Payload
+          ls -lh VoIPAssistant.ipa
+
+      - name: Upload IPA Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: VoIPAssistant-Unsigned-IPA
+          path: VoIPAssistant.ipa
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Create or Update GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v1.0.0
+          name: "VoIP Assistant iOS v1.0.0"
+          body: |
+            ## 🚀 VoIP Assistant per iOS (Unsigned .ipa)
+            
+            Build automatica compilata da GitHub Actions.
+            
+            ### Caratteristiche:
+            - **Triangolazione Inversa**: Il destinatario vede solo il tuo numero reale (`3669650010`).
+            - **Trascrizione AI**: Google Gemini 2.5 Flash con separazione interlocutori.
+            - **Mappe Concettuali (CmapTools)**: Grafo interattivo zoomabile ed esportabile in PNG.
+            - **Integrazione Google Calendar**: Creazione istantanea di appuntamenti con deep-link precompilati.
+            
+            ### Installazione su iPhone:
+            Puoi installare questo file `.ipa` senza account sviluppatore a pagamento tramite:
+            - **AltStore / AltServer**
+            - **SideStore**
+            - **TrollStore** (se iOS supportato)
+            - **Scarlet / LiveContainer**
+          files: VoIPAssistant.ipa
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

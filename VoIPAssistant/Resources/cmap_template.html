@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=3.0, user-scalable=yes">
+  <title>Mappa Concettuale - Stile CmapTools</title>
+  <!-- Cytoscape.js & Dagre layout for hierarchical concept mapping -->
+  <script src="https://cdn.jsdelivr.net/npm/cytoscape@3.28.1/dist/cytoscape.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dagre@0.8.5/dist/dagre.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/cytoscape-dagre@2.5.0/cytoscape-dagre.min.js"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+    body, html {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: #f8fafc;
+    }
+    @media (prefers-color-scheme: dark) {
+      body, html {
+        background-color: #0f172a;
+        color: #f1f5f9;
+      }
+    }
+    #cy {
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      left: 0;
+      top: 0;
+      z-index: 1;
+    }
+    .toolbar {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      z-index: 10;
+      display: flex;
+      gap: 8px;
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      padding: 6px 10px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+      border: 1px solid rgba(226, 232, 240, 0.8);
+    }
+    @media (prefers-color-scheme: dark) {
+      .toolbar {
+        background: rgba(30, 41, 59, 0.85);
+        border: 1px solid rgba(51, 65, 85, 0.8);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      }
+    }
+    .btn {
+      background: #0284c7;
+      color: white;
+      border: none;
+      padding: 6px 10px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      transition: background 0.15s;
+    }
+    .btn:active {
+      transform: scale(0.96);
+    }
+    .btn-secondary {
+      background: #e2e8f0;
+      color: #1e293b;
+    }
+    @media (prefers-color-scheme: dark) {
+      .btn-secondary {
+        background: #334155;
+        color: #f1f5f9;
+      }
+    }
+    .legend {
+      position: absolute;
+      bottom: 12px;
+      left: 12px;
+      z-index: 10;
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      padding: 6px 12px;
+      border-radius: 10px;
+      font-size: 11px;
+      color: #64748b;
+      border: 1px solid rgba(226, 232, 240, 0.8);
+      pointer-events: none;
+    }
+    @media (prefers-color-scheme: dark) {
+      .legend {
+        background: rgba(30, 41, 59, 0.85);
+        border: 1px solid rgba(51, 65, 85, 0.8);
+        color: #94a3b8;
+      }
+    }
+    #loading {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 20;
+      font-size: 14px;
+      color: #64748b;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div id="loading">Caricamento mappa concettuale...</div>
+  <div id="cy"></div>
+
+  <div class="toolbar">
+    <button class="btn btn-secondary" onclick="zoomIn()">➕</button>
+    <button class="btn btn-secondary" onclick="zoomOut()">➖</button>
+    <button class="btn btn-secondary" onclick="fitView()">⛶ Adatta</button>
+    <button class="btn" onclick="exportImage()">📸 Esporta</button>
+  </div>
+
+  <div class="legend">
+    Stile CmapTools • Trascina i concetti per riorganizzare
+  </div>
+
+  <script>
+    var cy = null;
+    var rawData = null;
+
+    // Inizializza o aggiorna il grafo con i dati JSON
+    function renderMap(jsonData) {
+      try {
+        if (typeof jsonData === 'string') {
+          rawData = JSON.parse(jsonData);
+        } else {
+          rawData = jsonData;
+        }
+
+        var loading = document.getElementById('loading');
+        if (loading) loading.style.display = 'none';
+
+        var elements = [];
+        var isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+        // Se i dati contengono già elementi cytoscape:
+        if (rawData.cytoscape_elements && rawData.cytoscape_elements.length > 0) {
+          elements = rawData.cytoscape_elements;
+        } else if (rawData.concepts) {
+          // Genera nodi e archi con lo stile classico Novak CmapTools:
+          // Ogni concetto è un nodo rettangolare con bordi arrotondati
+          // Ogni parola legame può essere un'etichetta sull'arco o un nodo legame
+          rawData.concepts.forEach(function(c) {
+            elements.push({
+              data: {
+                id: c.id,
+                label: c.label,
+                type: 'concept'
+              }
+            });
+          });
+
+          if (rawData.linking_phrases) {
+            rawData.linking_phrases.forEach(function(link, index) {
+              // CmapTools style: arco con etichetta centrata
+              elements.push({
+                data: {
+                  id: 'edge_' + (link.from || link.source) + '_' + (link.to || link.target) + '_' + index,
+                  source: link.from || link.source,
+                  target: link.to || link.target,
+                  label: link.label || link.phrase || ''
+                }
+              });
+            });
+          }
+        }
+
+        var nodeBg = isDark ? '#1e293b' : '#ffffff';
+        var nodeBorder = isDark ? '#38bdf8' : '#0284c7';
+        var textColor = isDark ? '#f8fafc' : '#0f172a';
+        var edgeColor = isDark ? '#64748b' : '#94a3b8';
+        var labelBg = isDark ? '#0f172a' : '#f1f5f9';
+        var labelBorder = isDark ? '#475569' : '#cbd5e1';
+
+        cy = cytoscape({
+          container: document.getElementById('cy'),
+          elements: elements,
+          boxSelectionEnabled: false,
+          autounselectify: false,
+          style: [
+            {
+              selector: 'node',
+              style: {
+                'shape': 'round-rectangle',
+                'background-color': nodeBg,
+                'border-width': 2,
+                'border-color': nodeBorder,
+                'border-opacity': 0.95,
+                'label': 'data(label)',
+                'color': textColor,
+                'text-valign': 'center',
+                'text-halign': 'center',
+                'font-size': '13px',
+                'font-weight': 'bold',
+                'text-wrap': 'wrap',
+                'text-max-width': '140px',
+                'padding': '12px',
+                'shadow-blur': 6,
+                'shadow-color': 'rgba(0,0,0,0.1)',
+                'shadow-offset-y': 2,
+                'width': 'label',
+                'height': 'label'
+              }
+            },
+            {
+              selector: 'edge',
+              style: {
+                'width': 2,
+                'line-color': edgeColor,
+                'target-arrow-color': edgeColor,
+                'target-arrow-shape': 'triangle',
+                'curve-style': 'bezier',
+                'arrow-scale': 1.1,
+                'label': 'data(label)',
+                'font-size': '11px',
+                'font-style': 'italic',
+                'color': isDark ? '#cbd5e1' : '#475569',
+                'text-background-color': labelBg,
+                'text-background-opacity': 0.95,
+                'text-background-padding': '4px',
+                'text-border-width': 1,
+                'text-border-color': labelBorder,
+                'text-border-opacity': 0.8,
+                'text-rotation': 'autorotate'
+              }
+            },
+            {
+              selector: ':selected',
+              style: {
+                'border-width': 3,
+                'border-color': '#f59e0b',
+                'line-color': '#f59e0b',
+                'target-arrow-color': '#f59e0b'
+              }
+            }
+          ],
+          layout: {
+            name: typeof cytoscape('core', 'dagre') === 'function' ? 'dagre' : 'breadthfirst',
+            directed: true,
+            padding: 40,
+            nodeSep: 60,
+            rankSep: 80,
+            spacingFactor: 1.2
+          }
+        });
+
+      } catch (e) {
+        console.error("Errore nel render della mappa:", e);
+        var loading = document.getElementById('loading');
+        if (loading) loading.innerText = "Errore nel caricamento della mappa: " + e.message;
+      }
+    }
+
+    function zoomIn() {
+      if (cy) cy.zoom({ level: cy.zoom() * 1.25, renderedPosition: { x: cy.width() / 2, y: cy.height() / 2 } });
+    }
+
+    function zoomOut() {
+      if (cy) cy.zoom({ level: cy.zoom() * 0.8, renderedPosition: { x: cy.width() / 2, y: cy.height() / 2 } });
+    }
+
+    function fitView() {
+      if (cy) cy.fit(null, 30);
+    }
+
+    function exportImage() {
+      if (!cy) return;
+      var base64Uri = cy.png({ full: true, bg: '#ffffff', scale: 2 });
+      if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.exportImage) {
+        window.webkit.messageHandlers.exportImage.postMessage(base64Uri);
+      } else {
+        var link = document.createElement('a');
+        link.download = 'mappa_concettuale.png';
+        link.href = base64Uri;
+        link.click();
+      }
+    }
+
+    // Ascolta notifiche dal contenitore nativo Swift
+    window.addEventListener('message', function(event) {
+      if (event.data) {
+        renderMap(event.data);
+      }
+    });
+  </script>
+</body>
+</html>

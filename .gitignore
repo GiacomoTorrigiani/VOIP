@@ -1,0 +1,38 @@
+# Xcode & Apple
+.DS_Store
+build/
+DerivedData/
+*.xcodeproj
+*.xcworkspace
+!project.yml
+xcuserdata/
+*.ipa
+Payload/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+env/
+*.db
+*.sqlite
+*.sqlite3
+
+# Audio & Recordings
+*.wav
+*.mp3
+*.m4a
+*.ogg
+/server/recordings/
+/server/data/
+
+# Environment & Secrets
+.env
+*.ppk
+*.pem
+*.key
+
+# Backups
+Torriflix_backup/
