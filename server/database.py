@@ -104,7 +104,8 @@ def save_processing_results(
     calendar_events: List[Dict[str, Any]],
     duration_seconds: int,
     audio_path: Optional[str] = None,
-    summary: Optional[str] = None
+    summary: Optional[str] = None,
+    recipient_name: Optional[str] = None
 ):
     now_iso = datetime.now(timezone.utc).isoformat()
     cmap_json = json.dumps(concept_map, ensure_ascii=False)
@@ -120,9 +121,10 @@ def save_processing_results(
                 duration_seconds = ?,
                 audio_path = COALESCE(?, audio_path),
                 summary = ?,
+                recipient_name = COALESCE(?, recipient_name),
                 updated_at = ?
             WHERE id = ? OR session_id = ? OR uniqueid = ?
-        """, (transcription, cmap_json, events_json, duration_seconds, audio_path, summary, now_iso, call_id, call_id, call_id))
+        """, (transcription, cmap_json, events_json, duration_seconds, audio_path, summary, recipient_name, now_iso, call_id, call_id, call_id))
         conn.commit()
 
 def _row_to_dict(row: sqlite3.Row) -> Dict[str, Any]:

@@ -115,6 +115,12 @@ def main():
         summary = result.get("summary", "")
         concept_map = result.get("concept_map", {})
         calendar_events = result.get("calendar_events", [])
+        detected_name = result.get("detected_recipient_name")
+
+        final_recip_name = None
+        if detected_name and recip_name in ["Chiamata Diretta", "Destinatario Sconosciuto", "Destinatario"]:
+            final_recip_name = detected_name
+            print(f"[PostProcessor] Nome interlocutore identificato da AI: {detected_name}")
 
         print(f"[PostProcessor] Elaborazione completata con successo! Trascrizione: {len(transcription)} caratteri, Eventi: {len(calendar_events)}")
 
@@ -125,7 +131,8 @@ def main():
             calendar_events=calendar_events,
             duration_seconds=duration,
             audio_path=str(final_audio_path),
-            summary=summary
+            summary=summary,
+            recipient_name=final_recip_name
         )
         print(f"[PostProcessor] Dati salvati nel database per la chiamata {call_id}.")
 
