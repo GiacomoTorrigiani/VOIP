@@ -76,9 +76,22 @@ def main():
         call_id = new_session["id"]
         database.update_call_status(call_id, status="processing", uniqueid=args.uniqueid, audio_path=str(wav_path))
 
-    # 2. Elaborazione con Gemini 2.5 Flash
+    # 2. Elaborazione con Gemini 2.5 Flash / 3.5 Flash Lite
+    if wav_path.stat().st_size <= 500 or duration == 0:
+        print("[PostProcessor] File audio vuoto o troppo breve (< 1s). Salvataggio stato senza invio a Gemini.")
+        database.save_processing_results(
+            call_id=call_id,
+            transcription="Nessun parlato rilevato (chiamata terminata immediatamente).",
+            concept_map={"concepts": [], "linking_phrases": []},
+            calendar_events=[],
+            duration_seconds=duration,
+            audio_path=str(wav_path),
+            summary="Chiamata vuota o interrotta."
+        )
+        return
+
     try:
-        print(f"[PostProcessor] Invio file a Gemini 2.5 Flash...")
+        print(f"[PostProcessor] Invio file a Gemini...")
         result = process_audio_file(str(wav_path))
 
         transcription = result.get("transcription", "")
