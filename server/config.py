@@ -9,7 +9,7 @@ BASE_DIR = Path(__file__).resolve().parent
 
 # Gemini AI
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
-GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite")
 
 # Autenticazione API REST
 API_SECRET_TOKEN = os.getenv("API_SECRET_TOKEN", "TorriflixVoip2026SecureKey!")

@@ -64,20 +64,34 @@ def _process_with_google_genai_sdk(path: Path) -> Dict[str, Any]:
     # Carica il file audio tramite il Files API di Gemini
     uploaded_file = client.files.upload(file=str(path))
 
-    response = client.models.generate_content(
-        model=GEMINI_MODEL,
-        contents=[
-            uploaded_file,
-            USER_PROMPT
-        ],
-        config=types.GenerateContentConfig(
-            system_instruction=SYSTEM_PROMPT,
-            response_mime_type="application/json"
-        )
-    )
+    candidates = [GEMINI_MODEL, "gemini-3.5-flash-lite", "gemini-3.8-flash"]
+    # Rimuovi duplicati mantenendo l'ordine
+    unique_candidates = list(dict.fromkeys(candidates))
 
-    text = response.text or "{}"
-    return _clean_and_parse_json(text)
+    last_error = None
+    for model_name in unique_candidates:
+        try:
+            print(f"[Processor] Tentativo elaborazione con modello: {model_name}")
+            response = client.models.generate_content(
+                model=model_name,
+                contents=[
+                    uploaded_file,
+                    USER_PROMPT
+                ],
+                config=types.GenerateContentConfig(
+                    system_instruction=SYSTEM_PROMPT,
+                    response_mime_type="application/json"
+                )
+            )
+            text = response.text or "{}"
+            return _clean_and_parse_json(text)
+        except Exception as e:
+            print(f"[Processor] Modello {model_name} non disponibile o fallito: {e}")
+            last_error = e
+
+    if last_error:
+        raise last_error
+    return {}
 
 def _process_with_gemini_rest(path: Path) -> Dict[str, Any]:
     """Fallback robusto via chiamata HTTP diretta con audio inline base64"""
@@ -90,8 +104,6 @@ def _process_with_gemini_rest(path: Path) -> Dict[str, Any]:
         mime_type = "audio/mp3"
     elif path.suffix.lower() in [".m4a", ".aac"]:
         mime_type = "audio/mp4"
-
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent?key={GEMINI_API_KEY}"
 
     payload = {
         "system_instruction": {
@@ -117,21 +129,24 @@ def _process_with_gemini_rest(path: Path) -> Dict[str, Any]:
         }
     }
 
-    resp = requests.post(url, json=payload, timeout=180)
-    if resp.status_code != 200:
-        raise RuntimeError(f"Errore Gemini API HTTP {resp.status_code}: {resp.text}")
+    candidates = [GEMINI_MODEL, "gemini-3.5-flash-lite", "gemini-3.8-flash"]
+    unique_candidates = list(dict.fromkeys(candidates))
 
-    result_json = resp.json()
-    candidates = result_json.get("candidates", [])
-    if not candidates:
-        raise RuntimeError("Nessun candidato restituito da Gemini")
+    last_err_resp = None
+    for model_name in unique_candidates:
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={GEMINI_API_KEY}"
+        resp = requests.post(url, json=payload, timeout=180)
+        if resp.status_code == 200:
+            result_json = resp.json()
+            items = result_json.get("candidates", [])
+            if items:
+                text_content = items[0]["content"]["parts"][0]["text"]
+                return _clean_and_parse_json(text_content)
+        last_err_resp = resp
 
-    parts = candidates[0].get("content", {}).get("parts", [])
-    if not parts:
-        raise RuntimeError("Nessuna parte di testo nella risposta di Gemini")
-
-    text = parts[0].get("text", "{}")
-    return _clean_and_parse_json(text)
+    if last_err_resp:
+        raise RuntimeError(f"Errore Gemini API HTTP {last_err_resp.status_code}: {last_err_resp.text}")
+    return {}
 
 def _clean_and_parse_json(raw_text: str) -> Dict[str, Any]:
     text = raw_text.strip()

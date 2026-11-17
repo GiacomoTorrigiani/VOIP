@@ -1,10 +1,16 @@
 #!/usr/bin/env python3
 import sys
 import os
+from pathlib import Path
+
+# Assicura che la cartella dello script sia in cima a sys.path
+SCRIPT_DIR = Path(__file__).resolve().parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+
 import time
 import wave
 import argparse
-from pathlib import Path
 from datetime import datetime, timezone
 
 from config import RECORDINGS_DIR, USER_PHONE
