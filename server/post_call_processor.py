@@ -98,9 +98,18 @@ def main():
     # Converti in AAC m4a ottimizzato per streaming iOS
     final_audio_path = convert_to_m4a(wav_path)
 
+    recip_name = session.get('recipient_name', 'Destinatario') if session else 'Destinatario'
+    recip_num = session.get('recipient_number', '') if session else ''
+
     try:
-        print(f"[PostProcessor] Invio file a Gemini ({final_audio_path})...")
-        result = process_audio_file(str(final_audio_path))
+        print(f"[PostProcessor] Invio file a Gemini ({final_audio_path}) per {recip_name}...")
+        result = process_audio_file(
+            audio_path=str(final_audio_path),
+            caller_name="Giacomo",
+            caller_number=args.caller,
+            recipient_name=recip_name,
+            recipient_number=recip_num
+        )
 
         transcription = result.get("transcription", "")
         summary = result.get("summary", "")

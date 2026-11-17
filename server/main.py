@@ -109,13 +109,24 @@ def get_call_audio(call_id: str):
 def _reprocess_call_task(call_id: str, audio_path: str):
     try:
         database.update_call_status(call_id, status="processing")
-        result = process_audio_file(audio_path)
+        call = database.get_call_by_id(call_id)
+        recipient_name = call.get("recipient_name", "Destinatario") if call else "Destinatario"
+        recipient_number = call.get("recipient_number", "") if call else ""
+        caller_number = call.get("caller_number", "3669650010") if call else "3669650010"
+        
+        result = process_audio_file(
+            audio_path=audio_path,
+            caller_name="Giacomo",
+            caller_number=caller_number,
+            recipient_name=recipient_name,
+            recipient_number=recipient_number
+        )
         database.save_processing_results(
             call_id=call_id,
             transcription=result.get("transcription", ""),
             concept_map=result.get("concept_map", {}),
             calendar_events=result.get("calendar_events", []),
-            duration_seconds=database.get_call_by_id(call_id).get("duration_seconds", 0),
+            duration_seconds=call.get("duration_seconds", 0) if call else 0,
             audio_path=audio_path,
             summary=result.get("summary", "")
         )
