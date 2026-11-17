@@ -101,9 +101,4 @@ curl http://localhost:8000/api/health
 
 ---
 
-## 🔒 Sicurezza & Parametri Predefiniti
-- **Numero Ponte VoIP**: `07441590208`
-- **Cellulare Reale Chiamante**: `3669650010`
-- **Host SIP Ehiweb**: `sip.vivavox.it` (UDP 5060)
-- **Modello AI**: `gemini-2.5-flash`
-- **Secret Token API**: `TorriflixVoip2026SecureKey!` (modificabile da `.env` e impostazioni app)
+
